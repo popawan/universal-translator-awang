@@ -1,0 +1,29 @@
+{
+  "name": "universal-translator",
+  "version": "1.0.0",
+  "description": "Universal Translator\uff08tw, en, jp, kr\uff09",
+  "main": "main.js",
+  "author": "a'wang@thinking",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.universal.translator",
+    "productName": "Universal Translator",
+    "win": {
+      "icon": "icon.png",
+      "target": [
+        "nsis"
+      ]
+    },
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-builder": "^24.8.0"
+  }
+}

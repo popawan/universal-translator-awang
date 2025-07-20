@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>社群全能翻譯助手</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f6f6f6; }
+    button { margin: 5px; padding: 5px 10px; }
+    #response { margin-top: 20px; background: white; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
+    textarea, input[type="password"] { width: 100%; padding: 5px; margin-top: 10px; }
+  </style>
+  <script src="i18n.js">
+    function checkStoredKey() {
+      const key = getKey();
+      if (key) {
+        document.getElementById("apiKeyInput").style.display = "none";
+        document.getElementById("saveKeyBtn").style.display = "none";
+        document.getElementById("inputLabel").style.display = "none";
+      }
+    }
+    
+    function checkStoredKey() {
+      const key = getKey();
+      if (key) {
+        document.getElementById("apiKeyInput").style.display = "none";
+        document.getElementById("saveKeyBtn").style.display = "none";
+        document.getElementById("inputLabel").style.display = "none";
+        document.getElementById("resetKeyBtn").style.display = "inline-block";
+      }
+    }
+    function resetKey() {
+      localStorage.removeItem("openai_api_key");
+      document.getElementById("apiKeyInput").style.display = "inline-block";
+      document.getElementById("saveKeyBtn").style.display = "inline-block";
+      document.getElementById("inputLabel").style.display = "inline-block";
+      document.getElementById("resetKeyBtn").style.display = "none";
+      alert("🔁 金鑰已清除，請重新輸入");
+    }
+    </script>
+    
+    
+</head>
+<body onload="applyTranslations(); checkStoredKey();">
+  <div style="max-width: 600px; margin: 0 auto; text-align: center;">
+
+  <div style="display: flex; align-items: center; margin-bottom: 20px;">
+    <img src="avatar_circular.png" alt="avatar" style="width: 50px; height: 50px; border-radius: 50%; margin-right: 10px;">
+    <span style="font-weight: bold; font-size: 1.1em;">a'wang@thinking</span>
+  </div>
+
+  <h2 id="title">🌍 社群全能翻譯助手</h2>
+
+  <label for="apiKeyInput" id="inputLabel">🔑 請輸入你的 OpenAI API Key：</label>
+  <input type="password" id="apiKeyInput" placeholder="sk-xxx..." style="width: 100%;">
+<p style="color: #e67e22; font-size: 0.85em; margin-top: 4px;">⚠️ 請輸入你在 OpenAI 帳戶取得的 API 金鑰（開頭通常是 sk-...）</p>
+  <button onclick="saveKey()" id="saveKeyBtn">儲存金鑰</button>
+  <button onclick="resetKey()" id="resetKeyBtn" style="display:none; margin-left: 10px;">更換金鑰</button>
+
+  <p style="color: gray; font-size: 0.9em;">⚠️ 提示：送出請按 Enter，換行請按 Shift + Enter</p>
+
+  <div style="margin-top: 20px;">
+    <button onclick="setPrefix('q')" id="btn1">繁中</button>
+    <button onclick="setPrefix('w')" id="btn2">美式英語</button>
+    <button onclick="setPrefix('e')" id="btn3">日文</button>
+    <button onclick="setPrefix('r')" id="btn4">韓文</button>
+  </div>
+
+  <textarea id="userInput" placeholder="請輸入要翻譯的內容..."></textarea>
+  <p style="color: #888; font-size: 0.85em;">⚠️ 按 Enter 為送出翻譯，換行請使用 Shift + Enter</p>
+  <button onclick="sendToGPT()" id="translateBtn">送出</button>
+
+  </div>
+<div id="response"></div>
+
+  <script>
+    let prefix = 'q'; // 預設繁中
+
+    function applyTranslations() {
+      document.getElementById("title").innerText = t.title;
+      document.getElementById("inputLabel").innerText = t.inputLabel;
+      document.getElementById("saveKeyBtn").innerText = t.saveKey;
+      document.getElementById("translateBtn").innerText = t.translateBtn;
+      document.getElementById("btn1").innerText = t.langButtons[0];
+      document.getElementById("btn2").innerText = t.langButtons[1];
+      document.getElementById("btn3").innerText = t.langButtons[2];
+      document.getElementById("btn4").innerText = t.langButtons[3];
+      document.getElementById("userInput").placeholder = t.inputPlaceholder;
+    }
+
+    function setPrefix(p) { prefix = p; }
+
+    function saveKey() {
+      const key = document.getElementById("apiKeyInput").value;
+      localStorage.setItem("openai_api_key", key);
+      alert("API Key 已儲存於本機瀏覽器中！");
+    }
+
+    function getKey() {
+      return localStorage.getItem("openai_api_key");
+    }
+
+    async function sendToGPT() {
+      const input = document.getElementById("userInput").value;
+      const apiKey = getKey();
+      if (!apiKey) {
+        alert(t.apiKeyWarning);
+        return;
+      }
+      const message = prefix + " " + input;
+
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + apiKey
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: "你是一個全能翻譯助手，支援四種語言：q 繁中, w 美式英語, e 日文, r 韓文，請根據用戶前綴翻譯。" },
+            { role: "user", content: message }
+          ]
+        })
+      });
+
+      const data = await res.json();
+      const outputArea = document.getElementById("response");
+      if (data.error) {
+        outputArea.innerText = "⚠️ 錯誤：" + data.error.message;
+      } else {
+        const reply = data.choices[0].message.content;
+        outputArea.innerText = t.gptResponse + reply;
+        try {
+          await navigator.clipboard.writeText(reply);
+          alert(t.successCopy);
+        } catch (err) {
+          alert(t.errorCopy);
+        }
+      }
+    }
+
+    document.getElementById("userInput").addEventListener("keydown", function(event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendToGPT();
+      }
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendToGPT();
+      }
+    });
+  
+    function checkStoredKey() {
+      const key = getKey();
+      if (key) {
+        document.getElementById("apiKeyInput").style.display = "none";
+        document.getElementById("saveKeyBtn").style.display = "none";
+        document.getElementById("inputLabel").style.display = "none";
+      }
+    }
+    
+    function checkStoredKey() {
+      const key = getKey();
+      if (key) {
+        document.getElementById("apiKeyInput").style.display = "none";
+        document.getElementById("saveKeyBtn").style.display = "none";
+        document.getElementById("inputLabel").style.display = "none";
+        document.getElementById("resetKeyBtn").style.display = "inline-block";
+      }
+    }
+    function resetKey() {
+      localStorage.removeItem("openai_api_key");
+      document.getElementById("apiKeyInput").style.display = "inline-block";
+      document.getElementById("saveKeyBtn").style.display = "inline-block";
+      document.getElementById("inputLabel").style.display = "inline-block";
+      document.getElementById("resetKeyBtn").style.display = "none";
+      alert("🔁 金鑰已清除，請重新輸入");
+    }
+    </script>
+    
+    
+</div>
+</body>
+</html>
